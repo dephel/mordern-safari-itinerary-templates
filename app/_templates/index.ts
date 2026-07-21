@@ -15,14 +15,14 @@ export const TEMPLATES: Template[] = [
     id: 'safari',
     title: 'Safari Itinerary',
     description: 'A classic safari itinerary layout with navigation menu and day-by-day details.',
-    thumbnail: '/assets/images',
+    thumbnail: '/assets/images/safari.jpeg',
     component: SafariTemplatePage,
   },
   {
     id: 'magazine',
     title: 'Magazine Book',
     description: 'A magazine-style two-page book with swipe and flip page transitions.',
-    thumbnail: '/assets/images',
+    thumbnail: '/assets/images/magazine.jpeg',
     component: MagazineTemplatePage,
   },
 ];

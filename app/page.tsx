@@ -85,7 +85,8 @@ export default function Home() {
                   fontSize: '40px',
                 }}
               >
-                {template.id === 'safari' ? '🦁' : '📖'}
+                {/* {template.id === 'safari' ? '🦁' : '📖'} */}
+                <img src={template.thumbnail} alt={template.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <h2
                 style={{
