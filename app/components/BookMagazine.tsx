@@ -120,27 +120,30 @@ export default function BookMagazine() {
   >(null);
   const [animatingPage, setAnimatingPage] = useState<number | null>(null);
   const [bookSize, setBookSize] = useState({ width: 1280, height: 720 });
+  const [isMobile, setIsMobile] = useState(false);
+  const [blink, setBlink] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollAccumRef = useRef(0);
   const lastScrollTimeRef = useRef(0);
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
+  const touchStartTimeRef = useRef(0);
 
   // Responsive sizing
   useEffect(() => {
     const updateSize = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const maxW = Math.min(vw * 0.96, 1280);
-      const maxH = Math.min(vh * 0.92, 720);
-      const ratio = 16 / 9;
-      let w = maxW;
-      let h = w / ratio;
-      if (h > maxH) {
-        h = maxH;
-        w = h * ratio;
+      const mobile = vw < 768;
+      setIsMobile(mobile);
+
+      if (mobile) {
+        // Mobile: one full-screen page
+        setBookSize({ width: Math.floor(vw), height: Math.floor(vh) });
+      } else {
+        // Desktop/tablet: two-page spread fills full viewport
+        setBookSize({ width: Math.floor(vw), height: Math.floor(vh) });
       }
-      setBookSize({ width: Math.floor(w), height: Math.floor(h) });
     };
     updateSize();
     window.addEventListener('resize', updateSize);
@@ -156,6 +159,8 @@ export default function BookMagazine() {
       setIsAnimating(true);
       setFlipDirection(direction);
       setAnimatingPage(currentPage);
+      setBlink(true);
+      setTimeout(() => setBlink(false), 200);
 
       setTimeout(() => {
         setCurrentPage((prev) =>
@@ -201,6 +206,15 @@ export default function BookMagazine() {
     const handleTouchStart = (e: TouchEvent) => {
       touchStartYRef.current = e.touches[0].clientY;
       touchStartXRef.current = e.touches[0].clientX;
+      touchStartTimeRef.current = Date.now();
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const dx = Math.abs(touchStartXRef.current - e.touches[0].clientX);
+      const dy = Math.abs(touchStartYRef.current - e.touches[0].clientY);
+      if (dx > dy && dx > 30) {
+        e.preventDefault();
+      }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -208,24 +222,23 @@ export default function BookMagazine() {
       const deltaX = touchStartXRef.current - e.changedTouches[0].clientX;
       const absDeltaY = Math.abs(deltaY);
       const absDeltaX = Math.abs(deltaX);
+      const duration = Date.now() - touchStartTimeRef.current;
 
-      if (absDeltaY > 40 || absDeltaX > 40) {
-        if (absDeltaY > absDeltaX) {
-          goToPage(deltaY > 0 ? 'forward' : 'backward');
-        } else {
-          goToPage(deltaX > 0 ? 'forward' : 'backward');
-        }
+      if (absDeltaX > absDeltaY && absDeltaX > 50 && duration < 500) {
+        goToPage(deltaX > 0 ? 'forward' : 'backward');
       }
     };
 
     const el = containerRef.current;
     if (el) {
       el.addEventListener('touchstart', handleTouchStart, { passive: true });
+      el.addEventListener('touchmove', handleTouchMove, { passive: false });
       el.addEventListener('touchend', handleTouchEnd, { passive: true });
     }
     return () => {
       if (el) {
         el.removeEventListener('touchstart', handleTouchStart);
+        el.removeEventListener('touchmove', handleTouchMove);
         el.removeEventListener('touchend', handleTouchEnd);
       }
     };
@@ -252,7 +265,7 @@ export default function BookMagazine() {
     return () => window.removeEventListener('keydown', handleKey);
   }, [goToPage]);
 
-  const pageW = bookSize.width / 2;
+  const pageW = isMobile ? bookSize.width : bookSize.width / 2;
   const pageH = bookSize.height;
 
   const currentSpread = PAGE_SPREADS[currentPage];
@@ -264,8 +277,8 @@ export default function BookMagazine() {
         width: '100vw',
         height: '100vh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: isMobile ? 'stretch' : 'center',
+        justifyContent: isMobile ? 'flex-start' : 'center',
         background:
           'linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 50%, #1a1a1a 100%)',
         overflow: 'hidden',
@@ -291,6 +304,9 @@ export default function BookMagazine() {
           width: `${bookSize.width}px`,
           height: `${pageH}px`,
           position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         {/* Book shadow */}
@@ -312,7 +328,7 @@ export default function BookMagazine() {
         <div
           style={{
             position: 'relative',
-            width: '100%',
+            width: isMobile ? '100%' : '100%',
             height: '100%',
             display: 'flex',
             boxShadow:
@@ -320,56 +336,121 @@ export default function BookMagazine() {
             zIndex: 1,
           }}
         >
-          {/* Spine */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: 0,
-              bottom: 0,
-              width: '4px',
-              transform: 'translateX(-50%)',
-              background:
-                'linear-gradient(to right, rgba(0,0,0,0.4), rgba(0,0,0,0.1), rgba(0,0,0,0.4))',
-              zIndex: 20,
-              pointerEvents: 'none',
-            }}
-          />
-
-          {/* Left page (current) */}
-          <div
-            style={{
-              width: `${pageW}px`,
-              height: `${pageH}px`,
-              position: 'relative',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-          >
-            <LeftPage
-              imageSrc={currentSpread.leftImage}
-              title={currentSpread.leftTitle}
-              labelTop={currentSpread.leftLabelTop}
-              labelMain={currentSpread.leftLabelMain}
-              subtitle={currentSpread.leftSubtitle}
+          {/* Spine - hidden on mobile */}
+          {!isMobile && (
+            <div
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: 0,
+                bottom: 0,
+                width: '4px',
+                transform: 'translateX(-50%)',
+                background:
+                  'linear-gradient(to right, rgba(0,0,0,0.4), rgba(0,0,0,0.1), rgba(0,0,0,0.4))',
+                zIndex: 20,
+                pointerEvents: 'none',
+              }}
             />
-          </div>
+          )}
 
-          {/* Right page (current) */}
-          <div
-            style={{
-              width: `${pageW}px`,
-              height: `${pageH}px`,
-              position: 'relative',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-          >
-            {getRightContent(currentPage)}
-          </div>
+          {isMobile ? (
+            <>
+              {/* Mobile: single full-width magazine page */}
+              <div
+                style={{
+                  width: `${pageW}px`,
+                  height: `${pageH}px`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                }}
+              >
+                <LeftPage
+                  imageSrc={currentSpread.leftImage}
+                  title={currentSpread.leftTitle}
+                  labelTop={currentSpread.leftLabelTop}
+                  labelMain={currentSpread.leftLabelMain}
+                  subtitle={currentSpread.leftSubtitle}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Left page (current) */}
+              <div
+                style={{
+                  width: `${pageW}px`,
+                  height: `${pageH}px`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                }}
+              >
+                <LeftPage
+                  imageSrc={currentSpread.leftImage}
+                  title={currentSpread.leftTitle}
+                  labelTop={currentSpread.leftLabelTop}
+                  labelMain={currentSpread.leftLabelMain}
+                  subtitle={currentSpread.leftSubtitle}
+                />
+              </div>
 
-          {/* Flip animation overlay - forward (left page flips) */}
-          {isAnimating &&
+              {/* Right page (current) */}
+              <div
+                style={{
+                  width: `${pageW}px`,
+                  height: `${pageH}px`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                }}
+              >
+                {getRightContent(currentPage)}
+              </div>
+            </>
+          )}
+
+          {/* Mobile flip animation - slide left/right */}
+          {isMobile && isAnimating && animatingPage !== null && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: `${pageW}px`,
+                height: `${pageH}px`,
+                animation:
+                  flipDirection === 'forward'
+                    ? 'mobileSlideOut 0.7s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards'
+                    : 'mobileSlideIn 0.7s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards',
+                zIndex: 16,
+                overflow: 'hidden',
+                pointerEvents: 'none',
+              }}
+            >
+              {flipDirection === 'forward' ? (
+                <LeftPage
+                  imageSrc={PAGE_SPREADS[animatingPage].leftImage}
+                  title={PAGE_SPREADS[animatingPage].leftTitle}
+                  labelTop={PAGE_SPREADS[animatingPage].leftLabelTop}
+                  labelMain={PAGE_SPREADS[animatingPage].leftLabelMain}
+                  subtitle={PAGE_SPREADS[animatingPage].leftSubtitle}
+                />
+              ) : (
+                <LeftPage
+                  imageSrc={prevSpread?.leftImage || ''}
+                  title={prevSpread?.leftTitle || ''}
+                  labelTop={prevSpread?.leftLabelTop}
+                  labelMain={prevSpread?.leftLabelMain}
+                  subtitle={prevSpread?.leftSubtitle}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Desktop flip animation overlay - forward (left page flips) */}
+          {!isMobile && isAnimating &&
             flipDirection === 'forward' &&
             animatingPage !== null && (
               <div
@@ -398,8 +479,8 @@ export default function BookMagazine() {
               </div>
             )}
 
-          {/* Flip animation overlay - forward (right page flips) */}
-          {isAnimating &&
+          {/* Desktop flip animation overlay - forward (right page flips) */}
+          {!isMobile && isAnimating &&
             flipDirection === 'forward' &&
             animatingPage !== null && (
               <div
@@ -422,8 +503,8 @@ export default function BookMagazine() {
               </div>
             )}
 
-          {/* Flip animation overlay - backward */}
-          {isAnimating &&
+          {/* Desktop flip animation overlay - backward */}
+          {!isMobile && isAnimating &&
             flipDirection === 'backward' &&
             animatingPage !== null &&
             prevSpread && (
@@ -478,12 +559,13 @@ export default function BookMagazine() {
         <div
           style={{
             position: 'absolute',
-            bottom: '-36px',
+            bottom: '12px',
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
+            zIndex: 30,
           }}
         >
           {PAGE_SPREADS.map((_, i) => (
@@ -516,7 +598,7 @@ export default function BookMagazine() {
         <div
           style={{
             position: 'absolute',
-            bottom: '-56px',
+            bottom: '36px',
             left: '50%',
             transform: 'translateX(-50%)',
             color: 'rgba(255,255,255,0.4)',
@@ -524,6 +606,7 @@ export default function BookMagazine() {
             fontSize: '11px',
             letterSpacing: '1px',
             whiteSpace: 'nowrap',
+            zIndex: 30,
           }}
         >
           {currentSpread.pageNumber} /{' '}
@@ -591,7 +674,7 @@ export default function BookMagazine() {
             pointerEvents: 'none',
           }}
         >
-          <span>Scroll to turn pages</span>
+          <span>{isMobile ? 'Swipe to turn pages' : 'Scroll to turn pages'}</span>
           <div className='scroll-indicator'>
             <svg width='12' height='18' viewBox='0 0 12 18' fill='none'>
               <path
@@ -604,6 +687,20 @@ export default function BookMagazine() {
             </svg>
           </div>
         </div>
+      )}
+
+      {/* Blink flash overlay */}
+      {blink && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(255,255,255,0.3)',
+            pointerEvents: 'none',
+            zIndex: 100,
+            animation: 'blinkFlash 0.2s ease-out forwards',
+          }}
+        />
       )}
 
       <style>{`
@@ -626,6 +723,18 @@ export default function BookMagazine() {
           0% { transform: rotateY(180deg); }
           60% { transform: rotateY(90deg); box-shadow: -15px 0 40px rgba(0,0,0,0.5); }
           100% { transform: rotateY(0deg); }
+        }
+        @keyframes mobileSlideOut {
+          0% { transform: translateX(0); opacity: 1; }
+          100% { transform: translateX(-100%); opacity: 1; }
+        }
+        @keyframes mobileSlideIn {
+          0% { transform: translateX(0); opacity: 1; }
+          100% { transform: translateX(100%); opacity: 1; }
+        }
+        @keyframes blinkFlash {
+          0% { opacity: 0.3; }
+          100% { opacity: 0; }
         }
       `}</style>
     </div>
