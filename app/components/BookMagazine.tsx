@@ -121,7 +121,6 @@ export default function BookMagazine() {
   const [animatingPage, setAnimatingPage] = useState<number | null>(null);
   const [bookSize, setBookSize] = useState({ width: 1280, height: 720 });
   const [isMobile, setIsMobile] = useState(false);
-  const [blink, setBlink] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollAccumRef = useRef(0);
   const lastScrollTimeRef = useRef(0);
@@ -159,13 +158,13 @@ export default function BookMagazine() {
       setIsAnimating(true);
       setFlipDirection(direction);
       setAnimatingPage(currentPage);
-      setBlink(true);
-      setTimeout(() => setBlink(false), 200);
+
+      // Switch the underlying spread immediately so it renders under the overlay
+      setCurrentPage((prev) =>
+        direction === 'forward' ? prev + 1 : prev - 1
+      );
 
       setTimeout(() => {
-        setCurrentPage((prev) =>
-          direction === 'forward' ? prev + 1 : prev - 1
-        );
         setIsAnimating(false);
         setFlipDirection(null);
         setAnimatingPage(null);
@@ -462,6 +461,7 @@ export default function BookMagazine() {
                   height: `${pageH}px`,
                   transformOrigin: 'right center',
                   transformStyle: 'preserve-3d',
+                  backfaceVisibility: 'hidden',
                   animation:
                     'bookFlipForwardLeft 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards',
                   zIndex: 15,
@@ -492,6 +492,7 @@ export default function BookMagazine() {
                   height: `${pageH}px`,
                   transformOrigin: 'left center',
                   transformStyle: 'preserve-3d',
+                  backfaceVisibility: 'hidden',
                   animation:
                     'bookFlipForwardRight 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards',
                   zIndex: 15,
@@ -518,6 +519,7 @@ export default function BookMagazine() {
                     height: `${pageH}px`,
                     transformOrigin: 'right center',
                     transformStyle: 'preserve-3d',
+                    backfaceVisibility: 'hidden',
                     animation:
                       'bookFlipBackwardLeft 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards',
                     zIndex: 15,
@@ -542,6 +544,7 @@ export default function BookMagazine() {
                     height: `${pageH}px`,
                     transformOrigin: 'left center',
                     transformStyle: 'preserve-3d',
+                    backfaceVisibility: 'hidden',
                     animation:
                       'bookFlipBackwardRight 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards',
                     zIndex: 15,
@@ -689,20 +692,6 @@ export default function BookMagazine() {
         </div>
       )}
 
-      {/* Blink flash overlay */}
-      {blink && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(255,255,255,0.3)',
-            pointerEvents: 'none',
-            zIndex: 100,
-            animation: 'blinkFlash 0.2s ease-out forwards',
-          }}
-        />
-      )}
-
       <style>{`
         @keyframes bookFlipForwardLeft {
           0% { transform: rotateY(0deg); }
@@ -731,10 +720,6 @@ export default function BookMagazine() {
         @keyframes mobileSlideIn {
           0% { transform: translateX(0); opacity: 1; }
           100% { transform: translateX(100%); opacity: 1; }
-        }
-        @keyframes blinkFlash {
-          0% { opacity: 0.3; }
-          100% { opacity: 0; }
         }
       `}</style>
     </div>
