@@ -21,11 +21,12 @@ export default function CoverRightPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <img
+          {/* <img
             src='https://assets.safariportal.app/fa6995f0/static/media/safari_portal.8afb5d19.svg'
             alt='Safari Portal Logo'
             style={{ height: '24px', objectFit: 'contain' }}
-          />
+          /> */}
+          <div>Modern Safari</div>
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <button

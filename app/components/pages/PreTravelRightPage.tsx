@@ -92,11 +92,12 @@ export default function PreTravelRightPage() {
       {/* Powered by */}
       <div className='powered-by'>
         <span>Powered by</span>
-        <img
+        Modern Safari
+        {/* <img
           src='https://assets.safariportal.app/fa6995f0/static/media/safari_portal.8afb5d19.svg'
           alt='Safari Portal'
           style={{ height: '16px', objectFit: 'contain' }}
-        />
+        /> */}
       </div>
     </RightPage>
   );
