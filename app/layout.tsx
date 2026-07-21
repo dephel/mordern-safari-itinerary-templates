@@ -34,6 +34,10 @@ export default function RootLayout({
           href='https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Raleway:wght@400;600;700;800;900&display=swap'
           rel='stylesheet'
         />
+        <link
+          href='https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap'
+          rel='stylesheet'
+        />
 
         <script
           type='module'
@@ -50,7 +54,6 @@ export default function RootLayout({
         style={{
           margin: 0,
           padding: 0,
-          overflow: 'hidden',
           background: '#1a1a1a',
         }}
       >
